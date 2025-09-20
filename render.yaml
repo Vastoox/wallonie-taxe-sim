@@ -25,7 +25,7 @@ services:
         sync: false
       - key: EUROTAX_API_KEY
         sync: false
-  - type: static
+- type: static_site
     name: wallonie-tax-web
     plan: free
     buildCommand: ""
