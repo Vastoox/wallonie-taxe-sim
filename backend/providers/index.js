@@ -6,3 +6,5 @@ else if (provider === 'jato') module.exports = require('./jato');
 else if (provider === 'autovista') module.exports = require('./autovista');
 else if (provider === 'eurotax') module.exports = require('./eurotax');
 else module.exports = require('./mock');
+import * as rdw from "./rdw.js";
+export { rdw };
