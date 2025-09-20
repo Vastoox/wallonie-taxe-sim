@@ -1,1 +1,2 @@
-window.API_BASE = window.API_BASE || (new URL(window.location.origin).origin.replace(/:\d+$/,':3000'));
+// frontend/config.js
+window.API_BASE = "https://wallonie-taxe-sim.onrender.com";
