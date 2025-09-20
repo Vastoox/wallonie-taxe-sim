@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: wallonie-tax-api
+    env: docker
+    plan: free
+    repo: https://example.com/your-repo.git
+    region: frankfurt
+    healthCheckPath: /api/health
+    envVars:
+      - key: PROVIDER
+        value: multi
+      - key: ENABLED_PROVIDERS
+        value: mock,carquery,jato,autovista,eurotax
+      - key: PORT
+        value: 3000
+      - key: JATO_BASE_URL
+        sync: false
+      - key: JATO_API_KEY
+        sync: false
+      - key: AUTOVISTA_BASE_URL
+        sync: false
+      - key: AUTOVISTA_API_KEY
+        sync: false
+      - key: EUROTAX_BASE_URL
+        sync: false
+      - key: EUROTAX_API_KEY
+        sync: false
+  - type: static
+    name: wallonie-tax-web
+    plan: free
+    buildCommand: ""
+    publishPath: frontend
+    envVars:
+      - key: API_BASE
+        value: https://wallonie-tax-api.onrender.com
