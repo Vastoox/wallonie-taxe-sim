@@ -32,11 +32,12 @@ services:
         value: ""
         sync: false
 
-  - type: static_site
+  - type: web
     name: wallonie-tax-web
+    env: static
     plan: free
     buildCommand: ""
-    publishPath: frontend
+    staticPublishPath: frontend
     envVars:
       - key: API_BASE
         value: https://wallonie-tax-api.onrender.com
