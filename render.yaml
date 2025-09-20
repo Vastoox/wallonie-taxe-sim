@@ -2,7 +2,6 @@ services:
   - type: web
     name: wallonie-tax-api
     env: docker
-    plan: free
     repo: https://github.com/Vastoox/wallonie-tax-sim
     region: frankfurt
     healthCheckPath: /api/health
@@ -29,7 +28,6 @@ services:
   - type: web
     name: wallonie-tax-web
     env: static
-    plan: free
     staticPublishPath: frontend
     envVars:
       - key: API_BASE
