@@ -41,3 +41,13 @@ app.get('/api/quote', async (req,res)=>{
   res.json({ tmc, taxe_annuelle: tax, details: { spec, vehYear: Number(year) } });
 });
 app.listen(PORT, ()=>console.log(`API sur http://localhost:${PORT}`));
+app.get('/api/_debug_carquery_makes', async (req,res) => {
+  try {
+    const fetch = require('node-fetch');
+    const raw = await fetch('https://www.carqueryapi.com/api/0.3/?callback=?&cmd=getMakes&sold_in_eu=1').then(r=>r.text());
+    const json = JSON.parse(raw.replace(/^\?\(|\);?$/g,''));
+    res.json(json.Makes?.map(m => m.make_display || m.make_id) || []);
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
