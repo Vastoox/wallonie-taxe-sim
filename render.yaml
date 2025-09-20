@@ -14,18 +14,25 @@ services:
       - key: PORT
         value: 3000
       - key: JATO_BASE_URL
+        value: ""
         sync: false
       - key: JATO_API_KEY
+        value: ""
         sync: false
       - key: AUTOVISTA_BASE_URL
+        value: ""
         sync: false
       - key: AUTOVISTA_API_KEY
+        value: ""
         sync: false
       - key: EUROTAX_BASE_URL
+        value: ""
         sync: false
       - key: EUROTAX_API_KEY
+        value: ""
         sync: false
-- type: static_site
+
+  - type: static_site
     name: wallonie-tax-web
     plan: free
     buildCommand: ""
