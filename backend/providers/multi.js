@@ -1,15 +1,42 @@
-
+// backend/providers/multi.js
 const { reconcile } = require('../services/reconcile');
-const registry = { mock:require('./mock'), carquery:require('./carquery'), jato:require('./jato'), autovista:require('./autovista'), eurotax:require('./eurotax') };
-function enabled(){ return (process.env.ENABLED_PROVIDERS||'mock').split(',').map(s=>s.trim()).filter(Boolean).filter(n=>registry[n]); }
-async function first(){ const n=enabled(); for(const k of n){ if(registry[k]) return registry[k]; } return registry.mock; }
-async function getMakes(){ return (await first()).getMakes(); }
-async function getModels(m){ return (await first()).getModels(m); }
-async function getYears(m,mo){ return (await first()).getYears(m,mo); }
-async function getTrims(m,mo,y){ return (await first()).getTrims(m,mo,y); }
+
+const registry = {
+  mock: require('./mock'),
+  carquery: require('./carquery'),
+  jato: require('./jato'),
+  autovista: require('./autovista'),
+  eurotax: require('./eurotax'),
+  rdw: require('./rdw'), // ← AJOUT
+};
+
+function enabledProviders() {
+  const list = (process.env.ENABLED_PROVIDERS || 'mock').split(',').map(s=>s.trim()).filter(Boolean);
+  return list.filter(name => registry[name]);
+}
+
+async function getFirstProvider(){
+  const names = enabledProviders();
+  for (const n of names){ if (registry[n]) return registry[n]; }
+  return registry.mock;
+}
+
+async function getMakes(){ return (await getFirstProvider()).getMakes(); }
+async function getModels(make){ return (await getFirstProvider()).getModels(make); }
+async function getYears(make, model){ return (await getFirstProvider()).getYears(make, model); }
+async function getTrims(make, model, year){ return (await getFirstProvider()).getTrims(make, model, year); }
+
 async function getSpecs(provider_key){
-  const names = enabled(); const all=[];
-  for(const n of names){ const p = registry[n]; try{ const s = await p.getSpecs(provider_key); if(s) all.push({provider:n,spec:s}); }catch(e){} }
+  const names = enabledProviders();
+  const all = [];
+  for (const n of names){
+    const prov = registry[n];
+    try{
+      const spec = await prov.getSpecs(provider_key);
+      if (spec) all.push({ provider: n, spec });
+    }catch(e){ /* ignore */ }
+  }
   return reconcile(all);
 }
+
 module.exports = { getMakes, getModels, getYears, getTrims, getSpecs };
