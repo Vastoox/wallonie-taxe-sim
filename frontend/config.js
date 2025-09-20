@@ -1,0 +1,1 @@
+window.API_BASE = window.API_BASE || (new URL(window.location.origin).origin.replace(/:\d+$/,':3000'));

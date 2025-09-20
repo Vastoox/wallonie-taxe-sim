@@ -1,0 +1,12 @@
+[project]
+name = "wallonie-tax-sim"
+[environments.production.services.api]
+start = "npm start"
+root = "backend"
+nixpacksPlan = { providers = ["node"] }
+env = { PORT = "3000", PROVIDER = "multi", ENABLED_PROVIDERS = "mock,carquery,jato,autovista,eurotax" }
+[environments.production.services.web]
+start = "npx serve -s ."
+root = "frontend"
+nixpacksPlan = { providers = ["node"] }
+env = { API_BASE = "https://<your-api-on-railway>.up.railway.app" }

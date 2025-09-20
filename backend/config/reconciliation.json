@@ -1,0 +1,15 @@
+{
+  "tolerances": {
+    "kw": 0,
+    "co2_wltp": 5,
+    "mma": 50,
+    "cc": 50
+  },
+  "priority": [
+    "jato",
+    "autovista",
+    "eurotax",
+    "carquery",
+    "mock"
+  ]
+}

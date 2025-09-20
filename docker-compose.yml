@@ -1,0 +1,21 @@
+
+version: "3.9"
+services:
+  api:
+    build: .
+    environment:
+      - PORT=3000
+      - PROVIDER=multi
+      - ENABLED_PROVIDERS=mock,carquery,jato,autovista,eurotax
+      - JATO_BASE_URL=
+      - JATO_API_KEY=
+      - AUTOVISTA_BASE_URL=
+      - AUTOVISTA_API_KEY=
+      - EUROTAX_BASE_URL=
+      - EUROTAX_API_KEY=
+    ports: ["3000:3000"]
+  web:
+    image: nginx:alpine
+    volumes: ["./frontend:/usr/share/nginx/html:ro"]
+    ports: ["8080:80"]
+    depends_on: ["api"]

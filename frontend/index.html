@@ -1,0 +1,33 @@
+<!doctype html><html lang="fr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulateur taxes Wallonie</title>
+<style>:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}body{margin:24px}h1{font-size:1.5rem;margin-bottom:.25rem}
+small.badge{background:#eef;color:#223;padding:.15rem .4rem;border-radius:6px;margin-left:.4rem}fieldset{border:1px solid #ddd;border-radius:10px;padding:12px 16px;margin-bottom:16px}
+label{display:block;margin:8px 0 6px;font-weight:600}select{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}
+.row{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.card{border:1px solid #eee;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.muted{color:#666}.mono{font-family:ui-monospace,Menlo,Consolas,monospace}</style>
+<script src="config.js"></script></head><body>
+<h1>Simulateur Wallonie – TMC + Taxe annuelle <small class="badge">beta</small></h1>
+<p class="muted">Sélectionnez <strong>Marque</strong> → <strong>Modèle</strong> → <strong>Année</strong> → <strong>Moteur</strong>. Le calcul se fait automatiquement.</p>
+<fieldset><legend>Votre véhicule</legend><div class="row">
+<div><label for="make">Marque</label><select id="make"></select></div>
+<div><label for="model">Modèle</label><select id="model" disabled></select></div>
+<div><label for="year">Année</label><select id="year" disabled></select></div>
+<div><label for="trim">Moteur / Finition</label><select id="trim" disabled></select></div>
+</div></fieldset>
+<div class="card"><div class="row">
+<div><h3>TMC estimée</h3><div id="tmc" class="mono" style="font-size:1.4rem;">—</div><div class="muted" style="font-size:.9rem;">Formule Wallonie 01/07/2025</div></div>
+<div><h3>Taxe annuelle estimée</h3><div id="tc" class="mono" style="font-size:1.4rem;">—</div><div class="muted" style="font-size:.9rem;">Par cylindrée (extrait)</div></div>
+</div></div>
+<script>
+const API=(p,q={})=>{const u=new URL((window.API_BASE||"http://localhost:3000")+p);Object.entries(q).forEach(([k,v])=>u.searchParams.set(k,v));return fetch(u).then(r=>r.json());};
+const $=id=>document.getElementById(id);const makeSel=$("make"),modelSel=$("model"),yearSel=$("year"),trimSel=$("trim");const tmcEl=$("tmc"),tcEl=$("tc");
+function formatEUR(n){return (n===null||n===undefined)?"—":n.toLocaleString('fr-BE',{style:'currency',currency:'EUR'});}
+async function init(){const makes=await API('/api/makes');makeSel.innerHTML='<option value="">—</option>'+makes.map(m=>`<option>${m}</option>`).join('');}
+makeSel.addEventListener('change',async()=>{modelSel.disabled=!makeSel.value;if(!makeSel.value){modelSel.innerHTML="";return;}const models=await API('/api/models',{make:makeSel.value});modelSel.innerHTML='<option value="">—</option>'+models.map(m=>`<option>${m}</option>`).join('');yearSel.innerHTML="";yearSel.disabled=true;trimSel.innerHTML="";trimSel.disabled=true;tmcEl.textContent=tcEl.textContent="—";});
+modelSel.addEventListener('change',async()=>{yearSel.disabled=!modelSel.value;if(!modelSel.value){yearSel.innerHTML="";return;}const years=await API('/api/years',{make:makeSel.value,model:modelSel.value});yearSel.innerHTML='<option value="">—</option>'+years.map(y=>`<option>${y}</option>`).join('');trimSel.innerHTML="";trimSel.disabled=true;tmcEl.textContent=tcEl.textContent="—";});
+yearSel.addEventListener('change',async()=>{trimSel.disabled=!yearSel.value;if(!yearSel.value){trimSel.innerHTML="";return;}const trims=await API('/api/trims',{make:makeSel.value,model:modelSel.value,year:yearSel.value});trimSel.innerHTML='<option value="">—</option>'+trims.map(t=>`<option value="${t.provider_key}">${t.name}</option>`).join('');tmcEl.textContent=tcEl.textContent="—";});
+trimSel.addEventListener('change',async()=>{if(!trimSel.value){tmcEl.textContent=tcEl.textContent="—";return;}const q=await API('/api/quote',{provider_key:trimSel.value,year:yearSel.value});tmcEl.textContent=formatEUR(q.tmc);tcEl.textContent=formatEUR(q.taxe_annuelle);});
+init();
+</script>
+</body></html>
