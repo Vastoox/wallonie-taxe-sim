@@ -1,134 +1,71 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Simulateur Taxes Wallonie</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      padding: 0;
-      background: #f7f7f7;
-    }
-    h1 {
-      color: #333;
-    }
-    select {
-      display: block;
-      margin: 10px 0;
-      padding: 6px;
-      font-size: 1rem;
-    }
-    .result {
-      margin-top: 20px;
-      padding: 15px;
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      max-width: 400px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Simulateur Wallonie – TMC & Taxe Annuelle</h1>
-  <p>Sélectionnez votre véhicule pour estimer vos taxes :</p>
+<script>
+  const API_BASE = window.API_BASE;
 
-  <!-- Sélecteurs -->
-  <label>Marque :</label>
-  <select id="make"></select>
+  async function API(path, params = {}) {
+    const url = new URL(API_BASE + path);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`API ${path} -> ${r.status}`);
+    return r.json();
+  }
 
-  <label>Modèle :</label>
-  <select id="model" disabled></select>
+  const makeSel = document.getElementById('make');
+  const modelSel = document.getElementById('model');
+  const yearSel  = document.getElementById('year');
+  const trimSel  = document.getElementById('trim');
+  const tmcEl    = document.getElementById('tmc');
+  const tcEl     = document.getElementById('tc');
 
-  <label>Année :</label>
-  <select id="year" disabled></select>
+  const formatEUR = (n) =>
+    n == null ? "—" : n.toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
 
-  <label>Moteur / Finition :</label>
-  <select id="trim" disabled></select>
+  async function init() {
+    const makes = await API("/api/makes");
+    makeSel.innerHTML = makes.map(m => `<option value="${m}">${m}</option>`).join('');
+    modelSel.disabled = yearSel.disabled = trimSel.disabled = true;
 
-  <!-- Résultats -->
-  <div class="result">
-    <h3>TMC estimée :</h3>
-    <div id="tmc">—</div>
+    makeSel.addEventListener("change", onMake);
+    modelSel.addEventListener("change", onModel);
+    yearSel.addEventListener("change", onYear);
+    trimSel.addEventListener("change", onTrim);
+  }
 
-    <h3>Taxe annuelle estimée :</h3>
-    <div id="tc">—</div>
-  </div>
+  async function onMake() {
+    const models = await API("/api/models", { make: makeSel.value });
+    modelSel.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+    modelSel.disabled = false;
+    yearSel.innerHTML = ""; yearSel.disabled = true;
+    trimSel.innerHTML = ""; trimSel.disabled = true;
+    tmcEl.textContent = tcEl.textContent = "—";
+  }
 
-  <!-- Charge la config API -->
-  <script src="./config.js"></script>
+  async function onModel() {
+    const years = await API("/api/years", { make: makeSel.value, model: modelSel.value });
+    yearSel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+    yearSel.disabled = false;
+    trimSel.innerHTML = ""; trimSel.disabled = true;
+    tmcEl.textContent = tcEl.textContent = "—";
+  }
 
-  <!-- Script principal -->
-  <script>
-    const API_BASE = window.API_BASE;
+  async function onYear() {
+    const trims = await API("/api/engines", {
+      make: makeSel.value,
+      model: modelSel.value,
+      year: yearSel.value
+    });
+    trimSel.innerHTML = trims.map(t =>
+      `<option value="${t.trim_id}">${t.engine}</option>`
+    ).join('');
+    trimSel.disabled = false;
+    tmcEl.textContent = tcEl.textContent = "—";
+  }
 
-    async function API(path, params = {}) {
-      const url = new URL(API_BASE + path);
-      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(\`API \${path} -> \${r.status}\`);
-      return r.json();
-    }
+  async function onTrim() {
+    const q = await API("/api/quote", { trimId: trimSel.value });
+    tmcEl.textContent = formatEUR(q.tmc);
+    tcEl.textContent  = formatEUR(q.taxe_annuelle);
+  }
 
-    const makeSel = document.getElementById('make');
-    const modelSel = document.getElementById('model');
-    const yearSel  = document.getElementById('year');
-    const trimSel  = document.getElementById('trim');
-    const tmcEl    = document.getElementById('tmc');
-    const tcEl     = document.getElementById('tc');
+  init();
+</script>
 
-    const formatEUR = (n) =>
-      n == null ? "—" : n.toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
-
-    async function init() {
-      const makes = await API("/api/makes");
-      makeSel.innerHTML = makes.map(m => \`<option value="\${m}">\${m}</option>\`).join('');
-      modelSel.disabled = yearSel.disabled = trimSel.disabled = true;
-
-      makeSel.addEventListener("change", onMake);
-      modelSel.addEventListener("change", onModel);
-      yearSel.addEventListener("change", onYear);
-      trimSel.addEventListener("change", onTrim);
-    }
-
-    async function onMake() {
-      const models = await API("/api/models", { make: makeSel.value });
-      modelSel.innerHTML = models.map(m => \`<option value="\${m}">\${m}</option>\`).join('');
-      modelSel.disabled = false;
-      yearSel.innerHTML = ""; yearSel.disabled = true;
-      trimSel.innerHTML = ""; trimSel.disabled = true;
-      tmcEl.textContent = tcEl.textContent = "—";
-    }
-
-    async function onModel() {
-      const years = await API("/api/years", { make: makeSel.value, model: modelSel.value });
-      yearSel.innerHTML = years.map(y => \`<option value="\${y}">\${y}</option>\`).join('');
-      yearSel.disabled = false;
-      trimSel.innerHTML = ""; trimSel.disabled = true;
-      tmcEl.textContent = tcEl.textContent = "—";
-    }
-
-    async function onYear() {
-      const trims = await API("/api/engines", {
-        make: makeSel.value,
-        model: modelSel.value,
-        year: yearSel.value
-      });
-      trimSel.innerHTML = trims.map(t =>
-        \`<option value="\${t.trim_id}">\${t.engine}</option>\`
-      ).join('');
-      trimSel.disabled = false;
-      tmcEl.textContent = tcEl.textContent = "—";
-    }
-
-    async function onTrim() {
-      const q = await API("/api/quote", { trimId: trimSel.value });
-      tmcEl.textContent = formatEUR(q.tmc);
-      tcEl.textContent  = formatEUR(q.taxe_annuelle);
-    }
-
-    init();
-  </script>
-</body>
-</html>
