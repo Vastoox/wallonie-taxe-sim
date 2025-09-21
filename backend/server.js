@@ -4,6 +4,15 @@ import pkg from "pg";
 const { Pool } = pkg;
 
 const app = express();
+// CORS : autoriser ton site statique à appeler l'API
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "https://wallonie-taxe-sim-1.onrender.com");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.PGSSL ? { rejectUnauthorized: false } : false,
