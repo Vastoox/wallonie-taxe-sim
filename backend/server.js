@@ -1,53 +1,74 @@
-
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-
-const { getMakes, getModels, getYears, getTrims, getSpecs } = require('./providers');
-const { computeTMC } = require('./services/tmc');
-const { computeAnnualTax } = require('./services/annual_tax');
+// backend/server.js
+import express from "express";
+import pkg from "pg";
+const { Pool } = pkg;
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.PGSSL ? { rejectUnauthorized: false } : false,
+});
+
+// Santé
+app.get("/health", async (_req, res) => {
+  try { await pool.query("select 1"); return res.json({ ok: true }); }
+  catch (e) { return res.status(500).json({ ok:false, error: e.message }); }
+});
+
+// Marques
+app.get("/api/makes", async (_req, res) => {
+  const { rows } = await pool.query(
+    "SELECT DISTINCT make FROM v_trim_quote ORDER BY make"
+  );
+  res.json(rows.map(r => r.make));
+});
+
+// Modèles
+app.get("/api/models", async (req, res) => {
+  const { make } = req.query;
+  if (!make) return res.status(400).json({ error: "make manquant" });
+  const { rows } = await pool.query(
+    "SELECT DISTINCT model FROM v_trim_quote WHERE make=$1 ORDER BY model",
+    [make]
+  );
+  res.json(rows.map(r => r.model));
+});
+
+// Années
+app.get("/api/years", async (req, res) => {
+  const { make, model } = req.query;
+  if (!make || !model) return res.status(400).json({ error: "make/model manquant" });
+  const { rows } = await pool.query(
+    "SELECT DISTINCT year FROM v_trim_quote WHERE make=$1 AND model=$2 ORDER BY year DESC",
+    [make, model]
+  );
+  res.json(rows.map(r => r.year));
+});
+
+// Moteurs
+app.get("/api/engines", async (req, res) => {
+  const { make, model, year } = req.query;
+  if (!make || !model || !year) return res.status(400).json({ error: "make/model/year manquant" });
+  const { rows } = await pool.query(
+    "SELECT trim_id, engine FROM v_trim_quote WHERE make=$1 AND model=$2 AND year=$3 ORDER BY engine",
+    [make, model, year]
+  );
+  res.json(rows);
+});
+
+// Devis final (TMC + taxe)
+app.get("/api/quote", async (req, res) => {
+  const { trimId } = req.query;
+  if (!trimId) return res.status(400).json({ error: "trimId manquant" });
+  const { rows } = await pool.query("SELECT * FROM v_trim_quote WHERE trim_id=$1", [trimId]);
+  if (!rows.length) return res.status(404).json({ error: "Not found" });
+  const r = rows[0];
+  res.json({
+    make:r.make, model:r.model, year:r.year, engine:r.engine,
+    kw:r.kw, cc:r.cc, co2:r.co2, cycle:r.cycle, mma:r.mma, fuel:r.fuel,
+    tmc:Number(r.tmc_estimate), taxe_annuelle:Number(r.annual_tax_estimate),
+  });
+});
+
 const PORT = process.env.PORT || 3000;
-
-app.get('/api/health', (req,res)=>res.json({ok:true}));
-
-app.get('/api/makes', async (req,res)=> res.json(await getMakes()));
-app.get('/api/models', async (req,res)=>{
-  const { make } = req.query; if(!make) return res.status(400).json({error:"Param 'make' requis"});
-  res.json(await getModels(make));
-});
-app.get('/api/years', async (req,res)=>{
-  const { make, model } = req.query; if(!make || !model) return res.status(400).json({error:"Params 'make' et 'model' requis"});
-  res.json(await getYears(make, model));
-});
-app.get('/api/trims', async (req,res)=>{
-  const { make, model, year } = req.query; if(!make || !model || !year) return res.status(400).json({error:"Params 'make','model','year' requis"});
-  res.json(await getTrims(make, model, Number(year)));
-});
-app.get('/api/specs', async (req,res)=>{
-  const { provider_key } = req.query; if(!provider_key) return res.status(400).json({error:"Param 'provider_key' requis"});
-  res.json(await getSpecs(provider_key));
-});
-app.get('/api/quote', async (req,res)=>{
-  const { provider_key, year } = req.query;
-  if(!provider_key || !year) return res.status(400).json({ error: "Params 'provider_key' et 'year' requis" });
-  const spec = await getSpecs(provider_key);
-  if(!spec) return res.status(404).json({ error:"Finition introuvable" });
-  const tmc = computeTMC(spec, Number(year));
-  const tax = computeAnnualTax(spec);
-  res.json({ tmc, taxe_annuelle: tax, details: { spec, vehYear: Number(year) } });
-});
-app.listen(PORT, ()=>console.log(`API sur http://localhost:${PORT}`));
-app.get('/api/_debug_carquery_makes', async (req,res) => {
-  try {
-    const fetch = require('node-fetch');
-    const raw = await fetch('https://www.carqueryapi.com/api/0.3/?callback=?&cmd=getMakes&sold_in_eu=1').then(r=>r.text());
-    const json = JSON.parse(raw.replace(/^\?\(|\);?$/g,''));
-    res.json(json.Makes?.map(m => m.make_display || m.make_id) || []);
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
-  }
-});
+app.listen(PORT, () => console.log("API on", PORT));
