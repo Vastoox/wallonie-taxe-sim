@@ -27,3 +27,7 @@ async function searchByText(make, model, year) {
 }
 
 module.exports = { getSpecs, searchByText };
+export default async function db(query, params = []) {
+  const { rows } = await pool.query(query, params);
+  return rows;
+}
