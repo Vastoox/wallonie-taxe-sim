@@ -1,8 +1,8 @@
-const express = require('express');
-const cors = require('cors');
+import express from 'express';
+import cors from 'cors';
 
-// ⚠️ On force le provider "multi"
-const provider = require('./providers/multi');
+// ⚠️ On force le provider multi
+import provider from './providers/multi.js';
 
 const app = express();
 app.use(cors());
@@ -73,7 +73,7 @@ app.get('/api/quote', async (req, res) => {
   }
 });
 
-// ===== DEBUG PROVIDER (utile pour toi) =====
+// ===== DEBUG =====
 app.get('/api/debug/provider', (req, res) => {
   res.json({ using: provider.name || 'multi' });
 });
@@ -83,3 +83,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ API on ${PORT}, using provider: ${provider.name || 'multi'}`);
 });
+
