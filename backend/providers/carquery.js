@@ -1,14 +1,21 @@
-// ESM
-import fetch from "node-fetch"; // si tu n'as pas node-fetch, remplace par global fetch (Node 18+)
-
+// CarQuery renvoie du JSONP. On fetch du texte et on "dé-JSONP-ise".
 const BASE = "https://www.carqueryapi.com/api/0.3/";
+
+// retire l’enveloppe JSONP:  callbackName({...});
+function parseJSONP(text) {
+  // supprime ce qui est avant la 1re parenthèse ouvrante et la parenthèse fermante finale + ';' éventuel
+  const json = text.replace(/^[^(]+\(/, "").replace(/\);?\s*$/, "");
+  return JSON.parse(json);
+}
 
 async function cq(params) {
   const u = new URL(BASE);
   Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
-  const r = await fetch(u.toString(), { timeout: 20000 });
+  // IMPORTANT: CarQuery retourne JSONP -> pas d'accept header JSON
+  const r = await fetch(u.toString(), { method: "GET" });
   if (!r.ok) throw new Error(`CarQuery ${u} -> ${r.status}`);
-  return r.json();
+  const txt = await r.text();
+  return parseJSONP(txt);
 }
 
 export async function getMakes() {
@@ -16,6 +23,7 @@ export async function getMakes() {
   const makes = (js.Makes || [])
     .map(m => m.make_display || m.make || m.make_id)
     .filter(Boolean);
+  // Unicité + tri alpha
   return [...new Set(makes)].sort((a, b) => a.localeCompare(b));
 }
 
@@ -38,11 +46,11 @@ export async function getYears(make, model) {
   return years;
 }
 
-// fallback trims si DB n'a rien (multi s’en servira)
 export async function getTrims(make, model, year) {
+  if (!make || !model || !year) return [];
   const js = await cq({ cmd: "getTrims", make, model, year });
   return (js.Trims || []).map(t => ({
-    trim_id: null,
-    engine: t.model_trim || t.model_engine_position || t.model_variant || "Moteur"
+    trim_id: null, // pas de devis si on n’a pas d’ID DB
+    engine: t.model_trim || t.model_engine_position || t.model_variant || "Moteur",
   }));
 }
