@@ -6,62 +6,37 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ---- Routes API ---- //
+app.get("/health", (req, res) => {
+  res.json({ ok: true, provider: "multi" });
+});
+
 app.get("/api/makes", async (req, res) => {
-  try {
-    const makes = await multi.getMakes();
-    res.json(makes);
-  } catch (err) {
-    console.error("Erreur /api/makes:", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
+  try { res.json(await multi.getMakes()); }
+  catch (e) { console.error(e); res.status(500).json({ error: "makes_failed" }); }
 });
 
 app.get("/api/models", async (req, res) => {
-  try {
-    const { make } = req.query;
-    const models = await multi.getModels(make);
-    res.json(models);
-  } catch (err) {
-    console.error("Erreur /api/models:", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
+  try { res.json(await multi.getModels(req.query.make)); }
+  catch (e) { console.error(e); res.status(500).json({ error: "models_failed" }); }
 });
 
 app.get("/api/years", async (req, res) => {
-  try {
-    const { make, model } = req.query;
-    const years = await multi.getYears(make, model);
-    res.json(years);
-  } catch (err) {
-    console.error("Erreur /api/years:", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
+  try { res.json(await multi.getYears(req.query.make, req.query.model)); }
+  catch (e) { console.error(e); res.status(500).json({ error: "years_failed" }); }
 });
 
 app.get("/api/engines", async (req, res) => {
-  try {
-    const { make, model, year } = req.query;
-    const engines = await multi.getEngines(make, model, year);
-    res.json(engines);
-  } catch (err) {
-    console.error("Erreur /api/engines:", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
+  try { res.json(await multi.getEngines(req.query.make, req.query.model, req.query.year)); }
+  catch (e) { console.error(e); res.status(500).json({ error: "engines_failed" }); }
 });
 
 app.get("/api/quote", async (req, res) => {
   try {
-    const q = await multi.getQuote(req.query);
-    res.json(q);
-  } catch (err) {
-    console.error("Erreur /api/quote:", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
+    const out = await multi.getQuote(req.query);
+    if (out?.error) return res.status(409).json(out);
+    res.json(out);
+  } catch (e) { console.error(e); res.status(500).json({ error: "quote_failed" }); }
 });
 
-// ---- Lancement ---- //
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ API en ligne sur le port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ API en ligne sur ${PORT}`));
