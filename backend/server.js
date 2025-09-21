@@ -1,86 +1,67 @@
-import express from 'express';
-import cors from 'cors';
-
-// ⚠️ On force le provider multi
-import provider from './providers/multi.js';
+import express from "express";
+import cors from "cors";
+import * as multi from "./providers/multi.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ===== HEALTH =====
-app.get('/health', (req, res) => {
-  res.json({ ok: true, provider: provider.name || 'multi' });
-});
-
-// ===== MAKES =====
-app.get('/api/makes', async (req, res) => {
+// ---- Routes API ---- //
+app.get("/api/makes", async (req, res) => {
   try {
-    const data = await provider.getMakes();
-    res.json(data);
-  } catch (e) {
-    console.error('Error /api/makes', e);
-    res.status(500).json({ error: 'makes_failed' });
+    const makes = await multi.getMakes();
+    res.json(makes);
+  } catch (err) {
+    console.error("Erreur /api/makes:", err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// ===== MODELS =====
-app.get('/api/models', async (req, res) => {
+app.get("/api/models", async (req, res) => {
   try {
     const { make } = req.query;
-    const data = await provider.getModels(make);
-    res.json(data);
-  } catch (e) {
-    console.error('Error /api/models', e);
-    res.status(500).json({ error: 'models_failed' });
+    const models = await multi.getModels(make);
+    res.json(models);
+  } catch (err) {
+    console.error("Erreur /api/models:", err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// ===== YEARS =====
-app.get('/api/years', async (req, res) => {
+app.get("/api/years", async (req, res) => {
   try {
     const { make, model } = req.query;
-    const data = await provider.getYears(make, model);
-    res.json(data);
-  } catch (e) {
-    console.error('Error /api/years', e);
-    res.status(500).json({ error: 'years_failed' });
+    const years = await multi.getYears(make, model);
+    res.json(years);
+  } catch (err) {
+    console.error("Erreur /api/years:", err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// ===== ENGINES =====
-app.get('/api/engines', async (req, res) => {
+app.get("/api/engines", async (req, res) => {
   try {
     const { make, model, year } = req.query;
-    const data = await provider.getEngines(make, model, year);
-    res.json(data);
-  } catch (e) {
-    console.error('Error /api/engines', e);
-    res.status(500).json({ error: 'engines_failed' });
+    const engines = await multi.getEngines(make, model, year);
+    res.json(engines);
+  } catch (err) {
+    console.error("Erreur /api/engines:", err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// ===== QUOTE =====
-app.get('/api/quote', async (req, res) => {
+app.get("/api/quote", async (req, res) => {
   try {
-    const { trimId } = req.query;
-    const data = await provider.getQuote(trimId);
-    if (data?.error) return res.status(409).json(data);
-    res.json(data);
-  } catch (e) {
-    console.error('Error /api/quote', e);
-    res.status(500).json({ error: 'quote_failed' });
+    const q = await multi.getQuote(req.query);
+    res.json(q);
+  } catch (err) {
+    console.error("Erreur /api/quote:", err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// ===== DEBUG =====
-app.get('/api/debug/provider', (req, res) => {
-  res.json({ using: provider.name || 'multi' });
-});
-
-// ===== START SERVER =====
+// ---- Lancement ---- //
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ API on ${PORT}, using provider: ${provider.name || 'multi'}`);
+  console.log(`✅ API en ligne sur le port ${PORT}`);
 });
-
